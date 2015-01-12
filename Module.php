@@ -14,20 +14,22 @@ class Module
     public function onBootstrap(MvcEvent $e)
     {
         $eventManager        = $e->getApplication()->getEventManager();
+        $serviceManager      = $e->getApplication()->getServiceManager();
         $moduleRouteListener = new ModuleRouteListener();
         $moduleRouteListener->attach($eventManager);
 
-        $eventManager->attach(
-            new Request($e->getApplication()->getServiceManager()->get('EddieJaoude\Zf2Logger'))
-        );
+        $request = $serviceManager->get('RequestListener');
+        $request->setLog($serviceManager->get('EddieJaoude\Zf2Logger'));
+        $request->attach($eventManager);
 
         $config = $e->getApplication()->getServiceManager()->get('Config');
         $moduleConfig = $config['EddieJaoude\Zf2Logger'];
 
-        $response   = new Response($e->getApplication()->getServiceManager()->get('EddieJaoude\Zf2Logger'));
+        $response = $serviceManager->get('ResponseListener');
+        $response->setLog($serviceManager->get('EddieJaoude\Zf2Logger'));
         $mediaTypes = empty($moduleConfig['doNotLog']['mediaTypes']) ? array() : $moduleConfig['doNotLog']['mediaTypes'];
         $response->setIgnoreMediaTypes($mediaTypes);
-        $eventManager->attach($response);
+        $response->attach($eventManager);
 
         return;
     }
@@ -62,6 +64,10 @@ class Module
         return array(
             'factories' => array(
                 'EddieJaoude\Zf2Logger' => 'EddieJaoude\Zf2Logger\Factory\Zf2Logger'
+            ),
+            'invokables' => array(
+                'RequestListener' => 'EddieJaoude\Zf2Logger\Listener\Request',
+                'ResponseListener' => 'EddieJaoude\Zf2Logger\Listener\Response'
             )
         );
     }
